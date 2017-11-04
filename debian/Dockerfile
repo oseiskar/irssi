@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 		libwww-perl \
 		perl \
 		wget \
+        openssh-server \
+        screen \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV HOME /home/user
@@ -59,7 +61,15 @@ RUN buildDeps=' \
 	&& rm -rf /usr/src/irssi \
 	&& apt-get purge -y --auto-remove $buildDeps
 
-WORKDIR $HOME
+RUN mkdir /var/run/sshd
+RUN ssh-keygen -y -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
+RUN ssh-keygen -y -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
 
 USER user
-CMD ["irssi"]
+RUN mkdir /home/user/.ssh/
+COPY authorized_keys /home/user/.ssh/authorized_keys
+
+USER root
+RUN chown user:user /home/user/.ssh/authorized_keys
+RUN chmod 600 /home/user/.ssh/authorized_keys
+CMD ["/usr/sbin/sshd", "-D"]
